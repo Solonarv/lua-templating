@@ -17,23 +17,27 @@ extra-doc-files:    CHANGELOG.md
 common warnings
     ghc-options: -Wall
 
-library
-    import:           warnings
-    exposed-modules:  MyLib
-    -- other-modules:
-    -- other-extensions:
-    build-depends:    base ^>=4.18.2.0
-    hs-source-dirs:   src
+common language
     default-language: Haskell2010
+    default-extensions: ImportQualifiedPost
+    other-extensions: TypeApplications
+
+library
+    import:           warnings, language
+    exposed-modules:  Text.Luatemp
+    -- other-modules:
+    build-depends:    base ^>=4.18.2.0
+                    , hslua
+                    , bytestring
+    hs-source-dirs:   src
 
 test-suite luatemp-test
-    import:           warnings
-    default-language: Haskell2010
+    import:           warnings, language
     -- other-modules:
-    -- other-extensions:
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
         base ^>=4.18.2.0,
-        luatemp
+        luatemp,
+        tasty, tasty-golden, filepath, bytestring
