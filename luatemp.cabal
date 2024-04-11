@@ -19,16 +19,20 @@ common warnings
 
 common language
     default-language: Haskell2010
-    default-extensions: ImportQualifiedPost
-    other-extensions: TypeApplications
+    -- syntax extensions ONLY
+    default-extensions: ImportQualifiedPost, DerivingStrategies, BlockArguments
+    -- extensions that actually do stuff
+    other-extensions: TypeApplications, OverloadedStrings, GeneralizedNewtypeDeriving
 
 library
     import:           warnings, language
-    exposed-modules:  Text.Luatemp
+    exposed-modules:  Text.Luatemp, Text.Luatemp.Template
     -- other-modules:
     build-depends:    base ^>=4.18.2.0
                     , hslua
                     , bytestring
+                    , vector
+                    , containers
     hs-source-dirs:   src
 
 test-suite luatemp-test
