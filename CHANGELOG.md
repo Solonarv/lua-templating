@@ -1,4 +1,4 @@
-# Revision history for luatemp
+# Revision history for lua-templating
 
 ## 0.1.0.0 -- YYYY-mm-dd
 

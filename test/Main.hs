@@ -1,6 +1,6 @@
 module Main (main) where
 
-import Text.Luatemp
+import Text.Templating.Lua
 
 import Test.Tasty (defaultMain, TestTree, testGroup)
 import Test.Tasty.Golden (goldenVsString, findByExtension)
@@ -13,7 +13,7 @@ main = defaultMain =<< goldenTests
 goldenTests :: IO TestTree
 goldenTests = do
   expecteds <- findByExtension [".expected"] "test-files"
-  pure $ testGroup "golden/runTemplateFile"
+  pure $ testGroup "runTemplateFile"
     [ goldenVsString
         (takeBaseName sourceFile)
         expectedFile

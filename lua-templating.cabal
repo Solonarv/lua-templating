@@ -1,9 +1,9 @@
 cabal-version:      3.4
-name:               luatemp
+name:               lua-templating
 version:            0.1.0.0
 synopsis:           Lua-based templating engine for Haskell.
 -- description:
-homepage:           https://github.com/Solonarv/luatemp
+homepage:           https://github.com/Solonarv/lua-templating
 license:            GPL-3.0-or-later
 license-file:       LICENSE
 author:             Solonarv
@@ -27,7 +27,10 @@ common language
 
 library
     import:           warnings, language
-    exposed-modules:  Text.Luatemp, Text.Luatemp.Template, Text.Luatemp.Template.Run
+    exposed-modules:  Text.Templating.Lua
+                    , Text.Templating.Lua.Types
+                    , Text.Templating.Lua.Parse
+                    , Text.Templating.Lua.Run
     -- other-modules:
     build-depends:    base ^>=4.18.2.0
                     , hslua
@@ -38,7 +41,7 @@ library
                     , filepath
     hs-source-dirs:   src
 
-test-suite luatemp-test
+test-suite lua-templating-test
     import:           warnings, language
     -- other-modules:
     type:             exitcode-stdio-1.0
@@ -46,5 +49,5 @@ test-suite luatemp-test
     main-is:          Main.hs
     build-depends:
         base ^>=4.18.2.0,
-        luatemp,
+        lua-templating,
         tasty, tasty-golden, filepath, bytestring

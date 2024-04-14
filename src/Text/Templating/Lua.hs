@@ -2,7 +2,7 @@
     TypeApplications
   , OverloadedStrings
   #-}
-module Text.Luatemp where
+module Text.Templating.Lua where
 
 import Data.Foldable
 import Data.ByteString.Lazy qualified as LBS
@@ -12,8 +12,8 @@ import System.FilePath (takeExtension)
 
 import HsLua qualified as Lua
 
-import Text.Luatemp.Template
-import Text.Luatemp.Template.Run
+import Text.Templating.Lua.Template
+import Text.Templating.Lua.Template.Run
 
 runLuaFile :: FilePath -> IO LBS.ByteString
 runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do

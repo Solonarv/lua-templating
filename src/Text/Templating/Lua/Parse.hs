@@ -1,5 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
-module Text.Luatemp.Template where
+module Text.Templating.Lua.Parse where
 
 import Data.Foldable
 import Control.Applicative
@@ -15,18 +15,7 @@ import Data.IntMap qualified as IntMap
 
 import Data.Attoparsec.ByteString as Parser
 
-data Template = MkTemplate
-  { templateTransformedLua :: !ByteString
-  , templateVerbatimChunks :: !(Vector ByteString)
-  } deriving (Eq, Show)
-
-
-data Token
-  = TText !Builder
-  | TBeginLuaExpr
-  | TBeginLua
-  | TEndLua
-  deriving Show
+import Text.Templating.Lua.Types
 
 catTexts :: [Token] -> [Token]
 catTexts (TText x : TText y : rest) = catTexts (TText (x <> y) : rest)
@@ -80,7 +69,7 @@ nomToken TEndLua st = case mode st of
   PLuaExpr  -> st { mode = PText }
 
 mkChunkName :: Int -> ByteString
-mkChunkName i = "emit_LUATEMP_CHUNK_" <> C8.pack (show i)
+mkChunkName i = "emit_TEMPLATE_CHUNK_" <> C8.pack (show i)
 
 initPState :: PState
 initPState = PState
@@ -100,10 +89,9 @@ closePState st = do
       !verbatims = toStrict . toLazyByteString <$> mkVerbatims (nextChunkId st) (chunkMap st)
   pure (MkTemplate code verbatims)
 
--- out-of-bounds errors somewhere in this function indicate a programmer error,
+-- missing-index errors somewhere in this function indicate a programmer error,
 -- so reporting them with a crash (which will be thrown by the vector functions,
--- or when accessing the resulting bottom) is perfectly adequate. no need to do
--- bounds checks here.
+-- or when accessing the resulting bottom) is perfectly adequate.
 mkVerbatims :: Int -> IntMap Builder -> Vector Builder
 mkVerbatims len entries = Vector.generate len (entries IntMap.!)
 

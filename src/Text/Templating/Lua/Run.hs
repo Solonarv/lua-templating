@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings, TypeApplications #-}
-module Text.Luatemp.Template.Run where
+module Text.Templating.Lua.Run where
 
 import Control.Monad
 import Control.Monad.IO.Class
@@ -14,7 +14,7 @@ import Data.Vector qualified as Vector
 import HsLua (Lua)
 import HsLua qualified as Lua
 
-import Text.Luatemp.Template
+import Text.Templating.Lua.Types
 
 runTemplate_ :: Template -> Lua (Maybe String, LazyByteString)
 runTemplate_ temp = do
