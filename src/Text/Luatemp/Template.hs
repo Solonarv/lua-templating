@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
 module Text.Luatemp.Template where
 
+import Data.Foldable
 import Control.Applicative
 
 import Data.ByteString (ByteString, toStrict)
@@ -9,7 +10,6 @@ import Data.ByteString.Builder (Builder, byteString, toLazyByteString)
 import Data.ByteString.Char8 qualified as C8
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
-import Data.Vector.Mutable qualified as MVector
 import Data.IntMap (IntMap)
 import Data.IntMap qualified as IntMap
 
@@ -22,18 +22,25 @@ data Template = MkTemplate
 
 
 data Token
-  = TText !ByteString
+  = TText !Builder
   | TBeginLuaExpr
   | TBeginLua
   | TEndLua
+  deriving Show
 
+catTexts :: [Token] -> [Token]
+catTexts (TText x : TText y : rest) = catTexts (TText (x <> y) : rest)
+catTexts (tok:toks) = tok : catTexts toks
+catTexts [] = []
+
+-- note: this parser always consumes input
 ptoken :: Parser Token
 ptoken = choice
-  [ TText <$> Parser.takeWhile1 (not . isDelimiter)
+  [ TText . byteString <$> Parser.takeWhile1 (not . isDelimiter)
   , TBeginLuaExpr <$ string "<%="
   , TBeginLua <$ string "<%"
   , TEndLua <$ string "%>"
-  , TText <$> choice [string "<", string "%"]
+  , TText . byteString <$> choice [string "<", string "%"]
   ]
   where
     isDelimiter 60 = True  -- '<'
@@ -44,7 +51,7 @@ data PState = PState
   { luaBits :: !Builder
   , nextChunkId :: !Int
   , mode :: PMode
-  , chunkMap :: IntMap ByteString  -- invariant: for each key k, 0 ≤ k < nextChunkId
+  , chunkMap :: IntMap Builder  -- invariant: for each key k, 0 ≤ k < nextChunkId
   }
 
 data PMode = PText | PLuaBlock | PLuaExpr
@@ -56,8 +63,8 @@ nomToken (TText txt) st = case mode st of
                  chunkName = mkChunkName chunkId
                  code = byteString chunkName <> "() "
                in st { luaBits = luaBits st <> code, nextChunkId = chunkId + 1, chunkMap = IntMap.insert chunkId txt (chunkMap st) }
-  PLuaBlock -> st { luaBits = luaBits st <> " " <> byteString txt }
-  PLuaExpr  -> st { luaBits = luaBits st <> "emit(" <> byteString txt <> ") " }
+  PLuaBlock -> st { luaBits = luaBits st <> " " <> txt }
+  PLuaExpr  -> st { luaBits = luaBits st <> "emit(" <> txt <> ") " }
 nomToken TBeginLuaExpr st = case mode st of
   PText     -> st { mode = PLuaExpr }
   _         -> st { luaBits = luaBits st <> "<%=" }
@@ -90,24 +97,18 @@ closePState st = do
     PLuaBlock -> fail "unclosed <%="
     PLuaExpr -> fail "unclosed <%"
   let !code = toStrict $ toLazyByteString (luaBits st)
-      !verbatims = mkVerbatims (nextChunkId st) (chunkMap st)
+      !verbatims = toStrict . toLazyByteString <$> mkVerbatims (nextChunkId st) (chunkMap st)
   pure (MkTemplate code verbatims)
 
 -- out-of-bounds errors somewhere in this function indicate a programmer error,
 -- so reporting them with a crash (which will be thrown by the vector functions,
 -- or when accessing the resulting bottom) is perfectly adequate. no need to do
 -- bounds checks here.
-mkVerbatims :: Int -> IntMap ByteString -> Vector ByteString
-mkVerbatims len entries = Vector.create do
-  vec <- MVector.new len
-  _ <- IntMap.traverseWithKey (MVector.write vec) entries
-  pure vec
+mkVerbatims :: Int -> IntMap Builder -> Vector Builder
+mkVerbatims len entries = Vector.generate len (entries IntMap.!)
 
 templateP :: Parser Template
-templateP = go initPState
-  where
-    go !st = (endOfInput >> closePState st)
-          <|> (ptoken >>= \tok -> go (nomToken tok st))
+templateP = closePState . foldl' (flip nomToken) initPState . catTexts =<< many ptoken
 
 loadTemplateFromFile :: FilePath -> IO (Either String Template)
 loadTemplateFromFile path = parseOnly templateP <$> ByteString.readFile path

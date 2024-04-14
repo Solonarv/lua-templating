@@ -4,13 +4,9 @@
   #-}
 module Text.Luatemp where
 
-import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
-import Data.ByteString.Lazy.Char8 qualified as Char8
 import System.Exit (die)
 import System.FilePath (takeExtension)
-
-import Data.Attoparsec.ByteString.Lazy as P
 
 import HsLua qualified as Lua
 
@@ -21,7 +17,7 @@ runLuaFile :: FilePath -> IO LBS.ByteString
 runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do
   Lua.openlibs
   -- Lua.liftIO $ LBS.putStr code
-  Lua.loadstring (LBS.toStrict code)
+  Lua.OK <- Lua.loadstring (LBS.toStrict code)
   Lua.call
     (Lua.NumArgs 0)
     (Lua.NumResults 1)
