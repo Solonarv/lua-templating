@@ -21,6 +21,7 @@ common language
     default-language: Haskell2010
     -- syntax extensions ONLY
     default-extensions: ImportQualifiedPost, DerivingStrategies, BlockArguments, BangPatterns
+                      , TupleSections
     -- extensions that actually do stuff
     other-extensions: TypeApplications, OverloadedStrings, GeneralizedNewtypeDeriving
 

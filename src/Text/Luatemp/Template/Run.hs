@@ -6,7 +6,6 @@ import Control.Monad.IO.Class
 import Data.IORef
 
 import Data.ByteString (ByteString)
-import Data.ByteString qualified as ByteString
 import Data.ByteString.Lazy (LazyByteString)
 import Data.ByteString.Builder (Builder, toLazyByteString, byteString)
 import Data.Vector (Vector)
@@ -17,34 +16,34 @@ import HsLua qualified as Lua
 
 import Text.Luatemp.Template
 
-runTemplate_ :: Template -> Lua LazyByteString
+runTemplate_ :: Template -> Lua (Maybe String, LazyByteString)
 runTemplate_ temp = do
   Lua.openlibs
   ref <- liftIO $ newIORef mempty
   setEmit ref
   setChunkGlobals ref (templateVerbatimChunks temp)
   status <- Lua.dostring (templateTransformedLua temp)
-  when (status /= Lua.OK) do
-    liftIO $ print ("uh oh!", status)
-  liftIO $ toLazyByteString <$> readIORef ref
+  let err = "Lua returned non-OK status " <> show status <$ guard (status /= Lua.OK)
+  liftIO $ (err,) . toLazyByteString <$> readIORef ref
 
-runTemplate :: Template -> IO LazyByteString
+runTemplate :: Template -> IO (Maybe String, LazyByteString)
 runTemplate temp = do
   Lua.run @Lua.Exception (runTemplate_ temp)
 
 setChunkGlobals :: IORef Builder -> Vector ByteString -> Lua ()
 setChunkGlobals ref chunks = flip Vector.imapM_ chunks \i chk -> do
   let name = Lua.Name (mkChunkName i)
-      func = do liftIO (modifyIORef' ref (<> byteString chk)); pure 0
-  Lua.pushHaskellFunction func
-  Lua.setglobal name
+      func :: Lua ()
+      func = atomicModifyIORef_' ref (<> byteString chk)
+  Lua.registerHaskellFunction name func
 
 setEmit :: IORef Builder -> Lua ()
-setEmit ref = Lua.pushHaskellFunction emitFunc *> Lua.setglobal "emit"
+setEmit ref = Lua.registerHaskellFunction "emit" emitFunc
   where
-    emitFunc = do
-      top <- Lua.gettop
-      val <- Lua.tostring' top
-      liftIO $ modifyIORef' ref (<> byteString val)
-      Lua.pop 1
-      pure 0
+    emitFunc :: ByteString -> Lua ()
+    emitFunc val = atomicModifyIORef_' ref (<> byteString val)
+
+-- | the same as 'Data.IORef.atomicModifyIORef'', but without
+-- extracting a result and lifted to MonadIO
+atomicModifyIORef_' :: MonadIO m => IORef a -> (a -> a) -> m ()
+atomicModifyIORef_' ref f = liftIO $ atomicModifyIORef' ref \old -> (f old, ())

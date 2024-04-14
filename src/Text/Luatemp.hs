@@ -4,8 +4,10 @@
   #-}
 module Text.Luatemp where
 
+import Data.Foldable
 import Data.ByteString.Lazy qualified as LBS
 import System.Exit (die)
+import System.IO (hPutStrLn, stderr)
 import System.FilePath (takeExtension)
 
 import HsLua qualified as Lua
@@ -26,7 +28,11 @@ runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do
 runTemplateFile :: FilePath -> IO LBS.ByteString
 runTemplateFile path
   | takeExtension path == ".lua" = runLuaFile path
-  | otherwise = loadTemplateFromFile path >>= either die pure >>= runTemplate
+  | otherwise = loadTemplateFromFile path >>= either die pure >>= runTemplate >>= maybePrintErr
+
+maybePrintErr :: (Maybe String, a) -> IO a
+maybePrintErr (merr, x) = x <$
+  for_ merr \err -> hPutStrLn stderr err
 
 -----------------
 -- Lua helpers --
