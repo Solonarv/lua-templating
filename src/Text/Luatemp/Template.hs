@@ -3,11 +3,10 @@ module Text.Luatemp.Template where
 
 import Control.Applicative
 
-import Data.ByteString (ByteString, pack, toStrict)
+import Data.ByteString (ByteString, toStrict)
 import Data.ByteString qualified as ByteString
 import Data.ByteString.Builder (Builder, byteString, toLazyByteString)
-import Data.ByteString.Char8 as C8
-import Data.ByteString.Lazy (LazyByteString)
+import Data.ByteString.Char8 qualified as C8
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
 import Data.Vector.Mutable qualified as MVector
@@ -58,7 +57,7 @@ nomToken (TText txt) st = case mode st of
                  code = byteString chunkName <> "() "
                in st { luaBits = luaBits st <> code, nextChunkId = chunkId + 1, chunkMap = IntMap.insert chunkId txt (chunkMap st) }
   PLuaBlock -> st { luaBits = luaBits st <> " " <> byteString txt }
-  PLuaExpr  -> st { luaBits = luaBits st <> " emit(" <> byteString txt <> ")" }
+  PLuaExpr  -> st { luaBits = luaBits st <> "emit(" <> byteString txt <> ") " }
 nomToken TBeginLuaExpr st = case mode st of
   PText     -> st { mode = PLuaExpr }
   _         -> st { luaBits = luaBits st <> "<%=" }

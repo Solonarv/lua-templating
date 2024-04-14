@@ -13,11 +13,11 @@ main = defaultMain =<< goldenTests
 goldenTests :: IO TestTree
 goldenTests = do
   expecteds <- findByExtension [".expected"] "test-files"
-  pure $ testGroup "golden tests"
+  pure $ testGroup "golden/runTemplateFile"
     [ goldenVsString
         (takeBaseName sourceFile)
         expectedFile
-        (runLuaFile sourceFile)
+        (runTemplateFile sourceFile)
     | expectedFile <- expecteds
     , let sourceFile = dropExtension expectedFile
     ]
