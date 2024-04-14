@@ -1,9 +1,16 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving, OverloadedStrings #-}
 module Text.Luatemp.Template where
 
-import Data.ByteString (ByteString, pack)
-import Data.ByteString.Builder (Builder, byteString)
+import Control.Applicative
+
+import Data.ByteString (ByteString, pack, toStrict)
+import Data.ByteString qualified as ByteString
+import Data.ByteString.Builder (Builder, byteString, toLazyByteString)
+import Data.ByteString.Char8 as C8
+import Data.ByteString.Lazy (LazyByteString)
 import Data.Vector (Vector)
+import Data.Vector qualified as Vector
+import Data.Vector.Mutable qualified as MVector
 import Data.IntMap (IntMap)
 import Data.IntMap qualified as IntMap
 
@@ -23,21 +30,16 @@ data Token
 
 ptoken :: Parser Token
 ptoken = choice
-  [ TText <$> Parser.takeWhile (not . isDelimiter)
+  [ TText <$> Parser.takeWhile1 (not . isDelimiter)
   , TBeginLuaExpr <$ string "<%="
   , TBeginLua <$ string "<%"
   , TEndLua <$ string "%>"
-  , TText <$> choice ["<", "%"]
+  , TText <$> choice [string "<", string "%"]
   ]
   where
     isDelimiter 60 = True  -- '<'
     isDelimiter 37 = True  -- '%'
     isDelimiter _  = False
-
-catTexts :: [Token] -> Token
-catTexts (TText a : TText b : rest) = catTexts (TText (a <> b) : rest)
-catTexts (x : rest) = x : catTexts rest
-catTexts [] = []
 
 data PState = PState
   { luaBits :: !Builder
@@ -53,8 +55,8 @@ nomToken (TText txt) st = case mode st of
   PText     -> let
                  chunkId = nextChunkId st
                  chunkName = mkChunkName chunkId
-                 code = " emit(" <> byteString chunkName <> ") "
-               in st { luaBits = luaBits st <> code, nextChunkId = chunkId + 1, chunkMap = IntMap.insert chunkId txt }
+                 code = byteString chunkName <> "() "
+               in st { luaBits = luaBits st <> code, nextChunkId = chunkId + 1, chunkMap = IntMap.insert chunkId txt (chunkMap st) }
   PLuaBlock -> st { luaBits = luaBits st <> " " <> byteString txt }
   PLuaExpr  -> st { luaBits = luaBits st <> " emit(" <> byteString txt <> ")" }
 nomToken TBeginLuaExpr st = case mode st of
@@ -68,11 +70,11 @@ nomToken TEndLua st = case mode st of
                  chunkId = nextChunkId st - 1
                  chunkMap' = IntMap.insertWith (flip (<>)) chunkId "%>" (chunkMap st)
                in st { chunkMap = chunkMap' }
-  PLuaBlock -> st { mode = rest }
-  PLuaExpr  -> st { mode = rest }
+  PLuaBlock -> st { mode = PText }
+  PLuaExpr  -> st { mode = PText }
 
 mkChunkName :: Int -> ByteString
-mkChunkName i = "LUATEMP_CHUNK_" <> pack (show i)
+mkChunkName i = "emit_LUATEMP_CHUNK_" <> C8.pack (show i)
 
 initPState :: PState
 initPState = PState
@@ -84,11 +86,11 @@ initPState = PState
 
 closePState :: MonadFail m => PState -> m Template
 closePState st = do
-  case mode of
+  case mode st of
     PText -> pure ()
     PLuaBlock -> fail "unclosed <%="
     PLuaExpr -> fail "unclosed <%"
-  let !code = toLazyByteString (luaBits st)
+  let !code = toStrict $ toLazyByteString (luaBits st)
       !verbatims = mkVerbatims (nextChunkId st) (chunkMap st)
   pure (MkTemplate code verbatims)
 
@@ -99,10 +101,14 @@ closePState st = do
 mkVerbatims :: Int -> IntMap ByteString -> Vector ByteString
 mkVerbatims len entries = Vector.create do
   vec <- MVector.new len
-  IntMap.traverseWithKey (MVector.write vec) entries
+  _ <- IntMap.traverseWithKey (MVector.write vec) entries
+  pure vec
 
 templateP :: Parser Template
 templateP = go initPState
   where
     go !st = (endOfInput >> closePState st)
-          <|> ptoken >>= \tok -> go (nomToken tok st)
+          <|> (ptoken >>= \tok -> go (nomToken tok st))
+
+loadTemplateFromFile :: FilePath -> IO (Either String Template)
+loadTemplateFromFile path = parseOnly templateP <$> ByteString.readFile path

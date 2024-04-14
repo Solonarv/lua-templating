@@ -23,13 +23,13 @@ runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do
   lua_getLBS
 
 runTemplateFile :: FilePath -> IO LBS.ByteString
-runTemplateFile = _TODO
+runTemplateFile = error "todo"
 
 -----------------
 -- Lua helpers --
 -----------------
 
-lua_getLBS :: Lua LBS.ByteString
+lua_getLBS :: Lua.Lua LBS.ByteString
 lua_getLBS = do
   result <- Lua.runPeeker Lua.peekLazyByteString 1
   Lua.pop 1
