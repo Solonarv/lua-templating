@@ -12,8 +12,8 @@ import System.FilePath (takeExtension)
 
 import HsLua qualified as Lua
 
-import Text.Templating.Lua.Template
-import Text.Templating.Lua.Template.Run
+import Text.Templating.Lua.Parse
+import Text.Templating.Lua.Run
 
 runLuaFile :: FilePath -> IO LBS.ByteString
 runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do

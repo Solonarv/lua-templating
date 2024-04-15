@@ -4,10 +4,9 @@ module Text.Templating.Lua.Parse where
 import Data.Foldable
 import Control.Applicative
 
-import Data.ByteString (ByteString, toStrict)
+import Data.ByteString (toStrict)
 import Data.ByteString qualified as ByteString
 import Data.ByteString.Builder (Builder, byteString, toLazyByteString)
-import Data.ByteString.Char8 qualified as C8
 import Data.Vector (Vector)
 import Data.Vector qualified as Vector
 import Data.IntMap (IntMap)
@@ -67,9 +66,6 @@ nomToken TEndLua st = case mode st of
                in st { chunkMap = chunkMap' }
   PLuaBlock -> st { mode = PText }
   PLuaExpr  -> st { mode = PText }
-
-mkChunkName :: Int -> ByteString
-mkChunkName i = "emit_TEMPLATE_CHUNK_" <> C8.pack (show i)
 
 initPState :: PState
 initPState = PState
