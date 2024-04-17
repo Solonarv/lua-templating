@@ -1,0 +1,15 @@
+<%
+-- check the `with_buffer` inspection method
+-- also checks that start/end tags work properly inside functions
+%>this text should be reversed<%
+with_buffer(function (str) return string.reverse(str) end)
+%>
+more normal text here....
+blah blah. now we should see a bracketed copy of everything so far:
+<%
+with_buffer(function (str)
+    emit("[[\n")
+    emit(str)
+    emit("\n]]")
+end) %>
+more end text, after the brackets

@@ -5,15 +5,18 @@
 module Text.Templating.Lua where
 
 import Data.Foldable
+import Data.ByteString (ByteString)
+import Data.ByteString qualified as BS
 import Data.ByteString.Lazy qualified as LBS
 import System.Exit (die)
-import System.IO (hPutStrLn, stderr)
+import System.IO (hPutStr, stderr)
 import System.FilePath (takeExtension)
 
 import HsLua qualified as Lua
 
 import Text.Templating.Lua.Parse
 import Text.Templating.Lua.Run
+import Text.Templating.Lua.Types
 
 runLuaFile :: FilePath -> IO LBS.ByteString
 runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do
@@ -28,11 +31,16 @@ runLuaFile fp = LBS.readFile fp >>= \code -> Lua.run @Lua.Exception $ do
 runTemplateFile :: FilePath -> IO LBS.ByteString
 runTemplateFile path
   | takeExtension path == ".lua" = runLuaFile path
-  | otherwise = loadTemplateFromFile path >>= either die pure >>= runTemplate >>= maybePrintErr
+  | otherwise = do
+      template <- loadTemplateFromFile path >>= either die pure
+      runTemplate template >>= maybePrintErr (templateTransformedLua template)
 
-maybePrintErr :: (Maybe String, a) -> IO a
-maybePrintErr (merr, x) = x <$
-  for_ merr \err -> hPutStrLn stderr err
+maybePrintErr :: ByteString -> (Maybe String, a) -> IO a
+maybePrintErr code (merr, x) = x <$
+  for_ merr \err -> do
+    hPutStr stderr (err <> "\n\nCode was:\n\n")
+    BS.hPutStr stderr code
+    hPutStr stderr "\n\n"
 
 -----------------
 -- Lua helpers --
