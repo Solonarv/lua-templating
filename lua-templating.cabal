@@ -21,7 +21,7 @@ common language
     default-language: Haskell2010
     -- syntax extensions ONLY
     default-extensions: ImportQualifiedPost, DerivingStrategies, BlockArguments, BangPatterns
-                      , TupleSections
+                      , TupleSections, LambdaCase
     -- extensions that actually do stuff
     other-extensions: TypeApplications, OverloadedStrings, GeneralizedNewtypeDeriving
 
@@ -40,6 +40,14 @@ library
                     , attoparsec
                     , filepath
     hs-source-dirs:   src
+
+executable render-lua-template
+    import: warnings, language
+    -- other-modules:
+    build-depends:    base, lua-templating, optparse-applicative, bytestring
+    hs-source-dirs:   exe
+    main-is:          Main.hs
+    
 
 test-suite lua-templating-test
     import:           warnings, language

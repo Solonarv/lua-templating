@@ -4,7 +4,7 @@ module Text.Templating.Lua.Parse where
 import Data.Foldable
 import Control.Applicative
 
-import Data.ByteString (toStrict)
+import Data.ByteString (ByteString, toStrict)
 import Data.ByteString qualified as ByteString
 import Data.ByteString.Builder (Builder, byteString, toLazyByteString)
 import Data.Vector (Vector)
@@ -93,6 +93,9 @@ mkVerbatims len entries = Vector.generate len (entries IntMap.!)
 
 templateP :: Parser Template
 templateP = closePState . foldl' (flip nomToken) initPState . catTexts =<< many ptoken
+
+parseTemplate :: ByteString -> Either String Template
+parseTemplate bs = parseOnly templateP bs
 
 loadTemplateFromFile :: FilePath -> IO (Either String Template)
 loadTemplateFromFile path = parseOnly templateP <$> ByteString.readFile path

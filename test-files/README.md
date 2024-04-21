@@ -47,6 +47,10 @@ Streaming is not supported. The entire template file must fit in memory, and mor
 Templates should be considered trusted code: they can do anything that an arbitrary lua file can do. Don't splice untrusted
 user input into templates, don't `eval()` user input, etc.
 
+### Extensibility
+
+Any lua library can simply be used as-is.
+
 ## Licensing
 
 This project is licensed under the GNU GPL, version 3.0 or later.
