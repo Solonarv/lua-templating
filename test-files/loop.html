@@ -1,0 +1,7 @@
+<%
+-- check that interleaving text/lua mode switches
+-- and lua blocks works properly, and also loops
+function do_item(i) %> <li><%=i%>th item</li> <% end %>
+<ul>
+<% for i = 1,10 do do_item(i) end %>
+</ul>
