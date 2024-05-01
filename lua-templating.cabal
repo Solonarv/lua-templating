@@ -23,7 +23,7 @@ common language
     default-extensions: ImportQualifiedPost, DerivingStrategies, BlockArguments, BangPatterns
                       , TupleSections, LambdaCase
     -- extensions that actually do stuff
-    other-extensions: TypeApplications, OverloadedStrings, GeneralizedNewtypeDeriving
+    other-extensions: TypeApplications, OverloadedStrings, GeneralizedNewtypeDeriving, DeriveFunctor
 
 library
     import:           warnings, language
@@ -39,6 +39,8 @@ library
                     , containers
                     , attoparsec
                     , filepath
+                    , hashable
+                    , unordered-containers
     hs-source-dirs:   src
 
 executable render-lua-template

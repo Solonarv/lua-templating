@@ -31,9 +31,9 @@ runTemplate :: Template -> IO (Maybe String, LazyByteString)
 runTemplate temp = do
   Lua.run @Lua.Exception (runTemplate_ temp)
 
-setChunkGlobals :: MVar Builder -> Vector ByteString -> Lua ()
-setChunkGlobals ref chunks = flip Vector.imapM_ chunks \i chk -> do
-  let name = Lua.Name (mkChunkName i)
+setChunkGlobals :: MVar Builder -> Vector (ByteString, ByteString) -> Lua ()
+setChunkGlobals ref chunks = flip Vector.imapM_ chunks \i (nm, chk) -> do
+  let name = Lua.Name nm
       func :: Lua ()
       func = tryModifyMVar__ ref (<> byteString chk) >>= throwLeft
   Lua.registerHaskellFunction name func

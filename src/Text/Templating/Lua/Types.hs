@@ -1,24 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, DeriveFunctor #-}
 module Text.Templating.Lua.Types where
 
 import Data.ByteString (ByteString)
-import Data.ByteString.Builder (Builder)
-import Data.ByteString.Char8 qualified as C8
 import Data.Vector (Vector)
 
 
 data Template = MkTemplate
   { templateTransformedLua :: !ByteString
-  , templateVerbatimChunks :: !(Vector ByteString)
+  , templateVerbatimChunks :: !(Vector (ByteString, ByteString))
   } deriving (Eq, Show)
 
 
-data Token
-  = TText !Builder
+data Token b
+  = TText !b
   | TBeginLuaExpr
   | TBeginLua
   | TEndLua
-  deriving Show
-
-mkChunkName :: Int -> ByteString
-mkChunkName i = "emit_TEMPLATE_CHUNK_" <> C8.pack (show i)
+  deriving (Eq, Show, Functor)
